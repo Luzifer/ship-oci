@@ -1,0 +1,45 @@
+name: test-and-build
+on:
+  push: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-build:
+    defaults:
+      run:
+        shell: bash
+
+    container:
+      image: ghcr.io/luzifer-docker/action-env:master@sha256:722ebd65ccdd8eeacbbed76983207394c7e2d7d11a5d9e7f5153f5eb3018b2e1
+      env:
+        CGO_ENABLED: 0
+        GOPATH: /go
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Marking workdir safe
+        run: git config --global --add safe.directory /__w/ship-oci/ship-oci
+
+      - name: 'Lint and test code'
+        run: make lint test
+
+      - name: Build release
+        run: bash ci/build.sh
+
+      - name: Extract changelog
+        run: 'awk "/^#/ && ++c==2{exit}; /^#/f" "History.md" | tail -n +2 >release_changelog.md'
+
+      - name: Release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          artifacts: '.build/*'
+          bodyFile: release_changelog.md
+          draft: false
+          generateReleaseNotes: false
