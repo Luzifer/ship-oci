@@ -13,6 +13,7 @@ import (
 
 	"git.luzifer.io/luzifer/ship-oci/pkg/scriptrunner"
 	"git.luzifer.io/luzifer/ship-oci/pkg/unpack"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -51,10 +52,14 @@ type (
 
 var (
 	// test-wrapper, overwritten in tests
-	exportImage    = crane.Export
-	imageDigest    = func(ref string) (string, error) { return crane.Digest(ref) }
+	exportImage = crane.Export
+	imageDigest = func(ref string) (string, error) {
+		return crane.Digest(ref, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+	}
 	parseReference = name.ParseReference
-	remoteImage    = func(ref name.Reference) (v1.Image, error) { return remote.Image(ref) }
+	remoteImage    = func(ref name.Reference) (v1.Image, error) {
+		return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	}
 )
 
 // New creates a Manager with the provided options.
