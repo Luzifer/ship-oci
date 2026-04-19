@@ -17,6 +17,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -49,6 +50,7 @@ type (
 
 	resolvedRelease struct {
 		id       string
+		digest   string
 		dir      string
 		marker   string
 		imageRef name.Reference
@@ -96,6 +98,9 @@ func (m Manager) FetchAndLink(imageRef, currentName string) (err error) {
 	}
 
 	currentLink := filepath.Join(m.releaseDir, currentName)
+	log := logrus.WithField("image_ref", imageRef)
+	log.Info("fetching release")
+
 	if err = ensureReleaseRoot(m.releaseDir); err != nil {
 		return err
 	}
@@ -105,11 +110,20 @@ func (m Manager) FetchAndLink(imageRef, currentName string) (err error) {
 		return err
 	}
 
+	log = log.WithFields(logrus.Fields{
+		"digest":     releaseMeta.digest,
+		"release_id": releaseMeta.id,
+	})
+	log.Info("resolved release image")
+
 	if shouldReuseCurrentLink(currentLink, releaseMeta.dir, releaseMeta.marker) {
+		log.Info("skipping fetch: current release already active")
 		return nil
 	}
 
 	if !isCompleteRelease(releaseMeta.marker) {
+		log.Info("downloading and unpacking release")
+
 		if err = resetIncompleteRelease(releaseMeta.dir); err != nil {
 			return err
 		}
@@ -117,19 +131,34 @@ func (m Manager) FetchAndLink(imageRef, currentName string) (err error) {
 		if err = stageRelease(releaseMeta); err != nil {
 			return err
 		}
+	} else {
+		log.Info("skipping extraction: release already complete")
 	}
 
 	if m.scriptRunEnabled {
+		logrus.WithFields(logrus.Fields{
+			"hook":       "pre-activate",
+			"release_id": releaseMeta.id,
+		}).Info("running release hook")
+
 		if err = scriptrunner.Run(releaseMeta.dir, "pre-activate", m.scriptRunTimeout); err != nil {
 			return fmt.Errorf("running pre-activate hook: %w", err)
 		}
+	} else {
+		log.Info("skipping hooks: disabled")
 	}
 
+	log.WithField("release_id", releaseMeta.id).Info("linking current release")
 	if err = linkCurrentRelease(currentLink, releaseMeta.id); err != nil {
 		return err
 	}
 
 	if m.scriptRunEnabled {
+		logrus.WithFields(logrus.Fields{
+			"hook":       "post-activate",
+			"release_id": releaseMeta.id,
+		}).Info("running release hook")
+
 		if err = scriptrunner.Run(releaseMeta.dir, "post-activate", m.scriptRunTimeout); err != nil {
 			return fmt.Errorf("running post-activate hook: %w", err)
 		}
@@ -144,6 +173,9 @@ func (m Manager) PruneOld() (err error) {
 	if err := m.validate(); err != nil {
 		return err
 	}
+
+	log := logrus.WithField("keep_last", m.keepLast)
+	log.Info("pruning old releases")
 
 	ents, err := os.ReadDir(m.releaseDir)
 	if err != nil {
@@ -171,12 +203,14 @@ func (m Manager) PruneOld() (err error) {
 	}
 
 	if len(items) <= m.keepLast {
+		log.Info("nothing to prune")
 		return nil
 	}
 
 	sort.Slice(items, func(i, j int) bool { return items[i].mod > items[j].mod })
 
 	for _, old := range items[m.keepLast:] {
+		logrus.WithField("release_id", filepath.Base(old.path)).Info("pruning old release")
 		if err := os.RemoveAll(old.path); err != nil {
 			return fmt.Errorf("pruning old snapshot: %w", err)
 		}
@@ -284,6 +318,7 @@ func resolveRelease(imageRef, releaseRoot string) (resolvedRelease, error) {
 
 	return resolvedRelease{
 		id:       releaseID,
+		digest:   digest,
 		dir:      releaseDir,
 		marker:   filepath.Join(releaseDir, releaseDoneMarker),
 		imageRef: immutableRef,

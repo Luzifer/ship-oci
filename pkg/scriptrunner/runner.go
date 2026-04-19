@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const scriptPath = ".deploy"
@@ -19,6 +21,7 @@ func Run(releaseDir, stage string, timeout time.Duration) (err error) {
 
 	if _, err = os.Stat(script); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
+			logrus.WithField("hook", stage).Debug("skipping hook script: not present")
 			return nil
 		}
 
