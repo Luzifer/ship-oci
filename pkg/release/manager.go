@@ -170,6 +170,10 @@ func (m Manager) PruneOld() (err error) {
 		items = append(items, item{path: p, mod: st.ModTime().Unix()})
 	}
 
+	if len(items) <= m.keepLast {
+		return nil
+	}
+
 	sort.Slice(items, func(i, j int) bool { return items[i].mod > items[j].mod })
 
 	for _, old := range items[m.keepLast:] {

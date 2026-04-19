@@ -92,6 +92,22 @@ func TestPruneOldRejectsInvalidKeepLast(t *testing.T) {
 	}
 }
 
+func TestPruneOldNoopWhenSnapshotsDoNotExceedKeepLast(t *testing.T) {
+	releaseDir := t.TempDir()
+	mgr := New(WithReleaseDir(releaseDir), WithKeepLast(3))
+
+	for _, dir := range []string{"one", "two"} {
+		require.NoError(t, os.Mkdir(filepath.Join(releaseDir, dir), 0o750))
+	}
+
+	require.NoError(t, mgr.PruneOld())
+
+	for _, dir := range []string{"one", "two"} {
+		_, err := os.Stat(filepath.Join(releaseDir, dir))
+		assert.NoError(t, err)
+	}
+}
+
 func stubReleaseDeps() func() {
 	oldDigest := imageDigest
 	oldParse := parseReference
