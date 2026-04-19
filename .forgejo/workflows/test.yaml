@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  push: {}
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: forgejo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Run make lint
+        run: make lint
+
+      - name: Run make test
+        run: make test
+
+      - name: Run make build
+        run: make build
+
+      - name: Run make trivy
+        run: make trivy
