@@ -27,14 +27,6 @@ const (
 	releaseDoneMarker = ".complete"
 )
 
-var (
-	// test-wrapper, overwritten in tests
-	imageDigest    = func(ref string) (string, error) { return crane.Digest(ref) }
-	parseReference = name.ParseReference
-	remoteImage    = func(ref name.Reference) (v1.Image, error) { return remote.Image(ref) }
-	exportImage    = crane.Export
-)
-
 type (
 	// Manager fetches OCI image releases, links the current release,
 	// and prunes old snapshots.
@@ -55,6 +47,14 @@ type (
 		marker   string
 		imageRef name.Reference
 	}
+)
+
+var (
+	// test-wrapper, overwritten in tests
+	exportImage    = crane.Export
+	imageDigest    = func(ref string) (string, error) { return crane.Digest(ref) }
+	parseReference = name.ParseReference
+	remoteImage    = func(ref name.Reference) (v1.Image, error) { return remote.Image(ref) }
 )
 
 // New creates a Manager with the provided options.

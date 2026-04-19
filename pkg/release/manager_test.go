@@ -85,13 +85,6 @@ func TestFetchAndLinkUsesImmutableDigestRefAndCleansFailedTempRelease(t *testing
 	assert.Equal(t, "sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", target)
 }
 
-func TestPruneOldRejectsInvalidKeepLast(t *testing.T) {
-	for _, keepLast := range []int{0, -1} {
-		mgr := New(WithReleaseDir(t.TempDir()), WithKeepLast(keepLast))
-		assert.Error(t, mgr.PruneOld(), "expected error for keepLast=%d", keepLast)
-	}
-}
-
 func TestPruneOldNoopWhenSnapshotsDoNotExceedKeepLast(t *testing.T) {
 	releaseDir := t.TempDir()
 	mgr := New(WithReleaseDir(releaseDir), WithKeepLast(3))
@@ -105,6 +98,13 @@ func TestPruneOldNoopWhenSnapshotsDoNotExceedKeepLast(t *testing.T) {
 	for _, dir := range []string{"one", "two"} {
 		_, err := os.Stat(filepath.Join(releaseDir, dir))
 		assert.NoError(t, err)
+	}
+}
+
+func TestPruneOldRejectsInvalidKeepLast(t *testing.T) {
+	for _, keepLast := range []int{0, -1} {
+		mgr := New(WithReleaseDir(t.TempDir()), WithKeepLast(keepLast))
+		assert.Error(t, mgr.PruneOld(), "expected error for keepLast=%d", keepLast)
 	}
 }
 

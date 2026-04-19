@@ -10,10 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRunReturnsNilWhenScriptDoesNotExist(t *testing.T) {
-	require.NoError(t, Run(t.TempDir(), "pre-activate", time.Second))
-}
-
 func TestRunExecutesScript(t *testing.T) {
 	releaseDir := t.TempDir()
 	createScript(t, releaseDir, "pre-activate", "#!/bin/sh\necho ok > hook-output\n")
@@ -39,6 +35,10 @@ func TestRunReturnsErrorOnTimeout(t *testing.T) {
 	err := Run(releaseDir, "pre-activate", 10*time.Millisecond)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "run script")
+}
+
+func TestRunReturnsNilWhenScriptDoesNotExist(t *testing.T) {
+	require.NoError(t, Run(t.TempDir(), "pre-activate", time.Second))
 }
 
 func createScript(t *testing.T, releaseDir, stage, body string) {

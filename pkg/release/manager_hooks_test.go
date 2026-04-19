@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFetchAndLinkRunsPreActivateAndLinksRelease(t *testing.T) {
+func TestFetchAndLinkPostActivateFailureReturnsErrorAfterLinking(t *testing.T) {
 	restore := stubReleaseDeps()
 	defer restore()
 
@@ -27,26 +27,30 @@ func TestFetchAndLinkRunsPreActivateAndLinksRelease(t *testing.T) {
 		WithScriptRunsEnabled(time.Second),
 	)
 
-	const digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-	releasePath := filepath.Join(releaseDir, strings.Replace(digest, ":", "-", 1))
+	const digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+	releaseID := strings.Replace(digest, ":", "-", 1)
+	releasePath := filepath.Join(releaseDir, releaseID)
 
 	imageDigest = func(string) (string, error) { return digest, nil }
 	remoteImage = func(_ name.Reference) (v1.Image, error) { return empty.Image, nil }
 	exportImage = func(_ v1.Image, w io.Writer) error {
 		writeTar(t, w,
-			tarEntry{name: ".deploy/pre-activate", body: []byte("#!/bin/sh\necho pre-ran > pre-ran\n"), mode: 0o755, kind: tar.TypeReg},
+			tarEntry{name: ".deploy/post-activate", body: []byte("#!/bin/sh\nexit 9\n"), mode: 0o755, kind: tar.TypeReg},
 			tarEntry{name: "fresh", body: []byte("ok"), mode: 0o644, kind: tar.TypeReg},
 		)
 		return nil
 	}
 
-	require.NoError(t, mgr.FetchAndLink("example.com/ns/app:latest", "current"))
+	err := mgr.FetchAndLink("example.com/ns/app:latest", "current")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "running post-activate hook")
 
-	target, err := os.Readlink(filepath.Join(releaseDir, "current"))
-	require.NoError(t, err)
-	assert.Equal(t, filepath.Base(releasePath), target)
+	target, readErr := os.Readlink(filepath.Join(releaseDir, "current"))
+	require.NoError(t, readErr)
+	assert.Equal(t, releaseID, target)
 
-	assert.Equal(t, "pre-ran\n", readTestFile(t, filepath.Join(releasePath, "pre-ran")))
+	_, statErr := os.Stat(filepath.Join(releasePath, "fresh"))
+	require.NoError(t, statErr)
 }
 
 func TestFetchAndLinkPreActivateFailureLeavesCurrentUnchanged(t *testing.T) {
@@ -88,43 +92,6 @@ func TestFetchAndLinkPreActivateFailureLeavesCurrentUnchanged(t *testing.T) {
 	require.NoError(t, statErr)
 }
 
-func TestFetchAndLinkPostActivateFailureReturnsErrorAfterLinking(t *testing.T) {
-	restore := stubReleaseDeps()
-	defer restore()
-
-	releaseDir := t.TempDir()
-	mgr := New(
-		WithReleaseDir(releaseDir),
-		WithKeepLast(1),
-		WithScriptRunsEnabled(time.Second),
-	)
-
-	const digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
-	releaseID := strings.Replace(digest, ":", "-", 1)
-	releasePath := filepath.Join(releaseDir, releaseID)
-
-	imageDigest = func(string) (string, error) { return digest, nil }
-	remoteImage = func(_ name.Reference) (v1.Image, error) { return empty.Image, nil }
-	exportImage = func(_ v1.Image, w io.Writer) error {
-		writeTar(t, w,
-			tarEntry{name: ".deploy/post-activate", body: []byte("#!/bin/sh\nexit 9\n"), mode: 0o755, kind: tar.TypeReg},
-			tarEntry{name: "fresh", body: []byte("ok"), mode: 0o644, kind: tar.TypeReg},
-		)
-		return nil
-	}
-
-	err := mgr.FetchAndLink("example.com/ns/app:latest", "current")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "running post-activate hook")
-
-	target, readErr := os.Readlink(filepath.Join(releaseDir, "current"))
-	require.NoError(t, readErr)
-	assert.Equal(t, releaseID, target)
-
-	_, statErr := os.Stat(filepath.Join(releasePath, "fresh"))
-	require.NoError(t, statErr)
-}
-
 func TestFetchAndLinkRunsHooksWhenActivatingExistingCompleteRelease(t *testing.T) {
 	restore := stubReleaseDeps()
 	defer restore()
@@ -157,6 +124,39 @@ func TestFetchAndLinkRunsHooksWhenActivatingExistingCompleteRelease(t *testing.T
 
 	_, err = os.Stat(filepath.Join(releasePath, "post-existing"))
 	require.NoError(t, err)
+}
+
+func TestFetchAndLinkRunsPreActivateAndLinksRelease(t *testing.T) {
+	restore := stubReleaseDeps()
+	defer restore()
+
+	releaseDir := t.TempDir()
+	mgr := New(
+		WithReleaseDir(releaseDir),
+		WithKeepLast(1),
+		WithScriptRunsEnabled(time.Second),
+	)
+
+	const digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+	releasePath := filepath.Join(releaseDir, strings.Replace(digest, ":", "-", 1))
+
+	imageDigest = func(string) (string, error) { return digest, nil }
+	remoteImage = func(_ name.Reference) (v1.Image, error) { return empty.Image, nil }
+	exportImage = func(_ v1.Image, w io.Writer) error {
+		writeTar(t, w,
+			tarEntry{name: ".deploy/pre-activate", body: []byte("#!/bin/sh\necho pre-ran > pre-ran\n"), mode: 0o755, kind: tar.TypeReg},
+			tarEntry{name: "fresh", body: []byte("ok"), mode: 0o644, kind: tar.TypeReg},
+		)
+		return nil
+	}
+
+	require.NoError(t, mgr.FetchAndLink("example.com/ns/app:latest", "current"))
+
+	target, err := os.Readlink(filepath.Join(releaseDir, "current"))
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Base(releasePath), target)
+
+	assert.Equal(t, "pre-ran\n", readTestFile(t, filepath.Join(releasePath, "pre-ran")))
 }
 
 func createExecutableScript(t *testing.T, releasePath, stage, body string) {

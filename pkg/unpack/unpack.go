@@ -93,26 +93,8 @@ func createSymlink(destDir, target, linkTarget string) error {
 	return nil
 }
 
-func safeExtractPath(destDir, entryName string) (cleanTarget string, err error) {
-	cleanTarget = filepath.Clean(filepath.Join(destDir, entryName))
-	cleanDestWithSep := destDir + string(os.PathSeparator)
-
-	if cleanTarget == destDir || strings.HasPrefix(cleanTarget, cleanDestWithSep) {
-		return cleanTarget, nil
-	}
-
-	return "", fmt.Errorf("tar path escape: %s", entryName)
-}
-
-func safeSymlinkTarget(destDir, linkPath, linkTarget string) (string, error) {
-	resolvedTarget := filepath.Clean(filepath.Join(filepath.Dir(linkPath), linkTarget))
-	cleanDestWithSep := destDir + string(os.PathSeparator)
-
-	if resolvedTarget == destDir || strings.HasPrefix(resolvedTarget, cleanDestWithSep) {
-		return resolvedTarget, nil
-	}
-
-	return "", fmt.Errorf("tar symlink escape: %s -> %s", linkPath, linkTarget)
+func dirModeFromHeader(mode int64) os.FileMode {
+	return fileModeFromHeader(mode)
 }
 
 func ensureNoSymlinkTraversal(destDir, target string) error {
@@ -146,6 +128,36 @@ func ensureNoSymlinkTraversal(destDir, target string) error {
 	return nil
 }
 
+func fileModeFromHeader(mode int64) os.FileMode {
+	if mode < 0 {
+		mode = 0
+	}
+
+	return os.FileMode(mode) & os.ModePerm
+}
+
+func safeExtractPath(destDir, entryName string) (cleanTarget string, err error) {
+	cleanTarget = filepath.Clean(filepath.Join(destDir, entryName))
+	cleanDestWithSep := destDir + string(os.PathSeparator)
+
+	if cleanTarget == destDir || strings.HasPrefix(cleanTarget, cleanDestWithSep) {
+		return cleanTarget, nil
+	}
+
+	return "", fmt.Errorf("tar path escape: %s", entryName)
+}
+
+func safeSymlinkTarget(destDir, linkPath, linkTarget string) (string, error) {
+	resolvedTarget := filepath.Clean(filepath.Join(filepath.Dir(linkPath), linkTarget))
+	cleanDestWithSep := destDir + string(os.PathSeparator)
+
+	if resolvedTarget == destDir || strings.HasPrefix(resolvedTarget, cleanDestWithSep) {
+		return resolvedTarget, nil
+	}
+
+	return "", fmt.Errorf("tar symlink escape: %s -> %s", linkPath, linkTarget)
+}
+
 func writeRegularFile(src io.Reader, target string, mode, size int64) (err error) {
 	if size < 0 {
 		return fmt.Errorf("negative file size for %q: %d", target, size)
@@ -171,16 +183,4 @@ func writeRegularFile(src io.Reader, target string, mode, size int64) (err error
 	}
 
 	return nil
-}
-
-func dirModeFromHeader(mode int64) os.FileMode {
-	return fileModeFromHeader(mode)
-}
-
-func fileModeFromHeader(mode int64) os.FileMode {
-	if mode < 0 {
-		mode = 0
-	}
-
-	return os.FileMode(mode) & os.ModePerm
 }
