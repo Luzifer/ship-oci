@@ -1,3 +1,4 @@
+// Package unpack extracts OCI image filesystem archives into release directories.
 package unpack
 
 import (
@@ -104,7 +105,7 @@ func ensureNoSymlinkTraversal(destDir, target string) error {
 	}
 
 	cur := destDir
-	for _, part := range strings.Split(relPath, string(os.PathSeparator)) {
+	for part := range strings.SplitSeq(relPath, string(os.PathSeparator)) {
 		if part == "." || part == "" {
 			continue
 		}
@@ -167,7 +168,7 @@ func writeRegularFile(src io.Reader, target string, mode, size int64) (err error
 		return fmt.Errorf("file %q exceeds max allowed size: %d", target, size)
 	}
 
-	//#nosec G304 -- target is constrained by safeExtractPath before reaching this helper.
+	//#nosec:G304 -- target is constrained by safeExtractPath before reaching this helper.
 	f, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fileModeFromHeader(mode))
 	if err != nil {
 		return fmt.Errorf("opening file %q: %w", target, err)

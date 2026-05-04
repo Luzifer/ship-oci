@@ -1,3 +1,4 @@
+// Ship-OCI utility
 package main
 
 import (
@@ -5,11 +6,10 @@ import (
 	"os"
 	"time"
 
-	"git.luzifer.io/luzifer/ship-oci/pkg/release"
-	"github.com/pkg/errors"
+	"github.com/Luzifer/rconfig/v2"
 	"github.com/sirupsen/logrus"
 
-	"github.com/Luzifer/rconfig/v2"
+	"git.luzifer.io/luzifer/ship-oci/pkg/release"
 )
 
 var (
@@ -29,7 +29,7 @@ var (
 func initApp() error {
 	rconfig.AutoEnv(true)
 	if err := rconfig.ParseAndValidate(&cfg); err != nil {
-		return errors.Wrap(err, "parsing cli options")
+		return fmt.Errorf("parsing cli options: %w", err)
 	}
 
 	if cfg.KeepLast < 1 {
@@ -38,7 +38,7 @@ func initApp() error {
 
 	l, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		return errors.Wrap(err, "parsing log-level")
+		return fmt.Errorf("parsing log-level: %w", err)
 	}
 	logrus.SetLevel(l)
 

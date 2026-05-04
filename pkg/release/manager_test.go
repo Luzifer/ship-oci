@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
+	v1 "github.com/google/go-containerregistry/pkg/v1" //revive:disable-line:redundant-import-alias // enforced by goimports
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

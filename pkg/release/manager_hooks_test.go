@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
+	v1 "github.com/google/go-containerregistry/pkg/v1" //revive:disable-line:redundant-import-alias // enforced by goimports
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -166,14 +166,14 @@ func createExecutableScript(t *testing.T, releasePath, stage, body string) {
 	require.NoError(t, os.MkdirAll(scriptDir, 0o750))
 	scriptPath := filepath.Join(scriptDir, stage)
 	require.NoError(t, os.WriteFile(scriptPath, []byte(body), 0o600))
-	//#nosec G302 -- Test fixture scripts must be executable to exercise hook execution.
+	//#nosec:G302 -- Test fixture scripts must be executable to exercise hook execution.
 	require.NoError(t, os.Chmod(scriptPath, 0o700))
 }
 
 func readTestFile(t *testing.T, path string) string {
 	t.Helper()
 
-	//#nosec G304 -- Test helper reads files created in t.TempDir with fixed filenames.
+	//#nosec:G304 -- Test helper reads files created in t.TempDir with fixed filenames.
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 

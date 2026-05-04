@@ -1,3 +1,4 @@
+// Package release manages fetching OCI image releases and activating them on disk.
 package release
 
 import (
@@ -11,14 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"git.luzifer.io/luzifer/ship-oci/pkg/scriptrunner"
-	"git.luzifer.io/luzifer/ship-oci/pkg/unpack"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
+	v1 "github.com/google/go-containerregistry/pkg/v1" //revive:disable-line:redundant-import-alias // enforced by goimports
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/sirupsen/logrus"
+
+	"git.luzifer.io/luzifer/ship-oci/pkg/scriptrunner"
+	"git.luzifer.io/luzifer/ship-oci/pkg/unpack"
 )
 
 const (
@@ -281,7 +283,7 @@ func linkCurrentRelease(currentLink, releaseID string) error {
 func markReleaseComplete(dir string) error {
 	markerPath := filepath.Join(dir, releaseDoneMarker)
 
-	//#nosec G304 -- markerPath is always derived from the managed temporary release directory.
+	//#nosec:G304 -- markerPath is always derived from the managed temporary release directory.
 	f, err := os.OpenFile(markerPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, releaseMarkerMode)
 	if err != nil {
 		return fmt.Errorf("creating release marker: %w", err)

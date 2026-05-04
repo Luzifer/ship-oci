@@ -1,3 +1,4 @@
+// Package scriptrunner executes release hook scripts from unpacked releases.
 package scriptrunner
 
 import (
@@ -39,7 +40,7 @@ func Run(releaseDir, stage string, timeout time.Duration) (err error) {
 		defer cancel()
 	}
 
-	//#nosec G204 -- script is constrained to <releaseDir>/.deploy/<stage> and stage must be a base name.
+	//#nosec:G204 -- script is constrained to <releaseDir>/.deploy/<stage> and stage must be a base name.
 	cmd := exec.CommandContext(ctx, script)
 	cmd.Dir = releaseDir
 	cmd.Env = os.Environ()

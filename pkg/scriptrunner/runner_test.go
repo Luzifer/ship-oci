@@ -49,14 +49,14 @@ func createScript(t *testing.T, releaseDir, stage, body string) {
 
 	scriptPath := filepath.Join(scriptDir, stage)
 	require.NoError(t, os.WriteFile(scriptPath, []byte(body), 0o600))
-	//#nosec G302 -- Test fixture scripts must be executable to exercise script execution.
+	//#nosec:G302 -- Test fixture scripts must be executable to exercise script execution.
 	require.NoError(t, os.Chmod(scriptPath, 0o700))
 }
 
 func readTestFile(t *testing.T, path string) string {
 	t.Helper()
 
-	//#nosec G304 -- Test helper reads files created in t.TempDir with fixed filenames.
+	//#nosec:G304 -- Test helper reads files created in t.TempDir with fixed filenames.
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 
