@@ -3,7 +3,7 @@ module git.luzifer.io/luzifer/ship-oci
 go 1.26.2
 
 require (
-	github.com/Luzifer/rconfig/v2 v2.6.1
+	github.com/Luzifer/rconfig/v2 v2.6.2
 	github.com/google/go-containerregistry v0.21.5
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
