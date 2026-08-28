@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/Luzifer/rconfig/v2 v2.6.2
 	github.com/google/go-containerregistry v0.22.0
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 )
 
